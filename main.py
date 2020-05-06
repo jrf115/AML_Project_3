@@ -24,56 +24,75 @@ print("Wisconsin data: \n" , X)
 print("Wisconsin target: \n" , y)
 
 count = 0
+topTen = []
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import MinMaxScaler
 scaler = MinMaxScaler()
-for gradient_solve in ["lbfgs", "sgd", "adam"]:
-    for activation_func in ["logistic", "tanh", "relu"]:
-        for regularization_param in [0.01, 0.1, 1.0]:
-            for scale_unscale in ["unscaled", "scaled"]:
-                if scale_unscale == "scaled":
-                    X_train_scale_unscale = scaler.fit_transform(X_train)
-                    X_test_scale_unscale = scaler.transform(X_test)
-                elif scale_unscale == "unscaled":
-                    X_train_scale_unscale = X_train
-                    X_test_scale_unscale = X_test
-                else:
-                    print("\n*********\n*******ERROR: Scale or unscaled were not chosen*******\n*********\n")
+for layers in [[5], [10], [5,10], [10,5], [10,20], [5,10,20], [5,20,10]]:
+    for gradient_solve in ["lbfgs", "sgd", "adam"]:
+        for activation_func in ["logistic", "tanh", "relu"]:
+            for regularization_param in [0.01, 0.1, 1.0]:
+                for scale_unscale in ["unscaled", "scaled"]:
+                    if scale_unscale == "scaled":
+                        X_train_scale_unscale = scaler.fit_transform(X_train)
+                        X_test_scale_unscale = scaler.transform(X_test)
+                    elif scale_unscale == "unscaled":
+                        X_train_scale_unscale = X_train
+                        X_test_scale_unscale = X_test
+                    else:
+                        print("\n*********\n*******ERROR: Scale or unscaled were not chosen*******\n*********\n")
 
-                # Single Hidden Layer Network
-                one_hidden_nnclf = MLPClassifier(hidden_layer_sizes=[5], solver=gradient_solve,
-                                                 activation=activation_func, alpha=regularization_param,
-                                                 random_state=1).fit(X_train_scale_unscale, y_train)
-                print('Accuracy of one hidden layer NN classifier on training set: {:.2f}'.
-                    format(one_hidden_nnclf.score(X_train_scale_unscale, y_train)))
-                print('Accuracy of one hidden layer NN classifier on test set: {:.2f}'.
-                    format(one_hidden_nnclf.score(X_test_scale_unscale, y_test)))
-                one_hidden_predict = one_hidden_nnclf.predict(X_test_scale_unscale)
-                print(confusion_matrix(y_test, one_hidden_predict))
+                    count += 1
+                    print("**************************", str(count), "**************************")
 
+                    one_hidden_nnclf = MLPClassifier(hidden_layer_sizes=layers, solver=gradient_solve,
+                                                     activation=activation_func, alpha=regularization_param,
+                                                     random_state=1).fit(X_train_scale_unscale, y_train)
+                    trainAcc = one_hidden_nnclf.score(X_train_scale_unscale, y_train)
+                    print('Accuracy of',  len(layers), 'hidden layers NN classifier on training set: {:.2f}'.
+                        format(trainAcc))
+                    print('Accuracy of',  len(layers), 'hidden layers NN classifier on test set: {:.2f}'.
+                        format(one_hidden_nnclf.score(X_test_scale_unscale, y_test)))
+                    one_hidden_predict = one_hidden_nnclf.predict(X_test_scale_unscale)
+                    print(confusion_matrix(y_test, one_hidden_predict))
+                    # print("String:", str(layers), "\n")
+                    modelDict = {
+                        "Model": "hiddenLayers = " + str(layers) + " gradientSolver = " + gradient_solve +
+                                 " activationFunction = " + activation_func + " reguParam = " + str(regularization_param) +
+                                 " Scale/Unscale = " + scale_unscale,
+                        "Train_Acc": trainAcc,
+                        "Test_Acc": (one_hidden_nnclf.score(X_test_scale_unscale, y_test)),
+                        "CM": str(confusion_matrix(y_test, one_hidden_predict))
+                    }
+                    if count == 1:
+                        topTen.append(modelDict)
+                    elif count <= 10:
+                        listCount = 0
+                        for t in topTen:
+                            if t.get("Train_Acc") < trainAcc:
+                                topTen.insert(listCount, modelDict)
+                                break
+                            elif t.get("Train_Acc") == trainAcc:
+                                topTen.append(modelDict)
+                                break
+                            listCount += 1
+                    else:
+                        listCount = 0
+                        for t in topTen:
+                            if t.get("Train_Acc") < trainAcc:
+                                topTen.pop()
+                                topTen.insert(listCount, modelDict)
+                                break
+                            listCount += 1
 
-                # Two Hidden Layer Network
-                two_hidden_nnclf = MLPClassifier(hidden_layer_sizes=[5, 10], solver=gradient_solve,
-                                                 activation=activation_func, alpha=regularization_param,
-                                                 random_state=1).fit(X_train_scale_unscale, y_train)
-                print('Accuracy of two hidden layers NN classifier on training set: {:.2f}'.
-                      format(two_hidden_nnclf.score(X_train_scale_unscale, y_train)))
-                print("Accuracy of two hidden layer NN classifier on test set: {:.2f}".
-                      format(two_hidden_nnclf.score(X_test_scale_unscale, y_test)))
-                two_hidden_predict = two_hidden_nnclf.predict(X_test_scale_unscale)
-                print(confusion_matrix(y_test, two_hidden_predict))
-
-
-                # Three Hiddden Layer Network
-                three_hidden_nnclf = MLPClassifier(hidden_layer_sizes=[5, 10, 100], solver=gradient_solve,
-                                                   activation=activation_func, alpha=regularization_param,
-                                                   random_state=1).fit(X_train_scale_unscale, y_train)
-                print('Accuracy of three hidden layers NN classifier on training set: {:.2f}'.
-                      format(three_hidden_nnclf.score(X_train_scale_unscale, y_train)))
-                print("Accuracy of three hidden layer NN classifier on test set: {:.2f}".
-                      format(three_hidden_nnclf.score(X_test_scale_unscale, y_test)))
-                three_hidden_predict = three_hidden_nnclf.predict(X_test_scale_unscale)
-                print(confusion_matrix(y_test, three_hidden_predict))
-                count += 3
 
 print("\n*****\nComputed", count, "models.\n*****")
+print("\n\nTop Ten Models: \n")
+num = 1
+for t in topTen:
+    print(str(num) + ") " + t.get("Model"))
+    print("with a training Acc: {:.2f}" . format(t.get("Train_Acc")))
+    print("and a Testing Acc: {:.2f}" . format(t.get("Test_Acc")))
+    print("and a Confusion Matrix of:\n", t.get("CM"))
+    print()
+    num += 1
