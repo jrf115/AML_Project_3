@@ -11,17 +11,28 @@ from sklearn.metrics import confusion_matrix
 from sklearn.datasets import load_breast_cancer
 load = load_breast_cancer()
 
+# We need a dataframe version of the dataset to print out statistics
+wisconsin = pd.DataFrame(load.data)
+wisconsin.columns = load.feature_names
+wisconsin['diagnosis'] = load.target
+wisconsin.head()
 
-
-wisconsin = load_breast_cancer()
-X = wisconsin.data
-y = wisconsin.target
+X = load.data
+y = load.target
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
 
 
 #print(wisconsin.shape)
-print("Wisconsin data: \n" , X)
-print("Wisconsin target: \n" , y)
+print("Wisconsin data: \n" , X, "\n")
+print("Wisconsin target: \n" , y, "\n")
+print("Wisconsin DF:\n", wisconsin, "\n")
+grouped = wisconsin.groupby(['diagnosis'])
+print("******** STATISTICS ********")
+print('Malignant')
+print(grouped.get_group(0).describe().transpose(), '\n')
+
+print('Benign')
+print(grouped.get_group(1).describe().transpose(), '\n')
 
 count = 0
 topTen = []
